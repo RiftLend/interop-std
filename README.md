@@ -1,66 +1,43 @@
-## Foundry
+## What is interop-std?
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+A set of basic libraries built on top of OpenZeppelin and Solady contracts which help developers write multichain smart contracts based on Optimism interops.
 
-Foundry consists of:
+## Why we developed it?
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Managing deployments on many chains is tough. These libraries provide a simple and easy way for developers to change permissions on one chain which are then automatically updated on all chains the contract is deployed on using interops.
 
-## Documentation
+## What's included in the library?
 
-https://book.getfoundry.sh/
+The library currently contains 3 contracts:
 
-## Usage
+### 1. SuperOwnable
 
-### Build
+[Source](https://github.com/RiftLend/interop-std/blob/main/src/auth/SuperOwnable.sol)
 
-```shell
-$ forge build
-```
+Built on top of Ownable from Solady, it enables developers to set one admin chainId which can update ownership across all chains. For example, if governance is operated on `OP Mainnet` and contracts are deployed on `Base`, `Mode`, and `OP Mainnet`:
 
-### Test
+- Setting the admin chain as `OP Mainnet` allows governance to call `transferOwnership`
+- This updates ownership on the main chain (`OP Mainnet`)
+- Emits an `InitiateCrosschainOwnershipTransfer` event
+- Event is indexed in the `CrossL2Inbox` and picked up by a relayer
+- Relayer calls `updateCrosschainOwner()` on contracts on all other chains (`Base`, `Mode`, etc.)
 
-```shell
-$ forge test
-```
+### 2. SuperPausable
 
-### Format
+[Source](https://github.com/RiftLend/interop-std/blob/main/src/utils/SuperPausable.sol)
 
-```shell
-$ forge fmt
-```
+Built on top of Pausable from OpenZeppelin, it helps developers manage pausing of multichain contracts using interops. Benefits:
 
-### Gas Snapshots
+- Eliminates need to pause contracts individually on each chain
+- Reduces delays during emergencies
+- When paused on one chain, emits `CrosschainPauseStateChanged` event
+- Event is picked up by relayer from CrossL2Inbox
+- Relayer calls `updateCrosschainPauseState()` to pause contracts on all deployed chains
 
-```shell
-$ forge snapshot
-```
+### 3. SuperProxyAdmin 🔨
 
-### Anvil
+[Source](https://github.com/RiftLend/interop-std/blob/main/src/utils/SuperProxyAdmin.sol)
 
-```shell
-$ anvil
-```
+_Development in Progress_
 
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+When the ProxyAdmin owner or proxy implementation is updated, it automatically updates all proxied implementations and owners across all chains where the proxied contract is deployed.
